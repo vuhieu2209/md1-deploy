@@ -1,4 +1,4 @@
-
+localStorage.setItem('key-avatar', avatar)
 
 const firebaseConfig = {
     apiKey: "AIzaSyDnSOQFvv4-rrUCdXpfu6hLUKUss_hJQTg",

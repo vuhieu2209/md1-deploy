@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
       integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
@@ -42,7 +43,7 @@
             <li class="nav-item">
                 <a id="login" class="nav-link" href="login.html">Login</a>
             </li>
-            <li id="dropdown" class="nav-item dropdown" >
+            <li id="dropdown" class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown"
                    aria-haspopup="true" aria-expanded="false">
 
@@ -64,11 +65,19 @@
         <form class="form-inline my-2 my-lg-0">
             <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
             <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-           <a href="upload.html"><img id="avatar" src="" style="border-radius: 50%;width: 50px;height: 50px"></a>
+            <a href="upload.html"><img id="avatar"
+                                       src="https://firebasestorage.googleapis.com/v0/b/hieu2209-11609.appspot.com/o/images%2F6-anh-dai-dien-trang-inkythuatso-03-15-26-36.jpg?alt=media&token=f3d0be82-a442-4021-a7d2-23157c4ae6fe&_gl=1*g4ywlm*_ga*MjA1OTQ5MjM2Ni4xNjk4NzY0NjMz*_ga_CW55HF8NVT*MTY5ODc3MDE0OS4yLjEuMTY5ODc3MDE4Ni4yMy4wLjA."
+                                       style="border-radius: 50%;width: 50px;height: 50px"></a>
         </form>
     </div>
 </nav>
 <!--Cuối navbar-->
+<progress value="0" max="100" id="uploader">0%</progress>
+<input type="file" value="upload" accept=".jpg" id="fileButton">
+<p id="validate-avatar" style="color: red"></p>
+<h1>Hello GFG</h1>
+<!--<div id="imgDiv"></div>-->
+<img id="avatarStudent" src="" alt="">
 <div class="input-group mb-3">
 
     <div class="input-group-prepend">
@@ -108,12 +117,14 @@
            aria-label="Username"
            aria-describedby="basic-addon1">
 </div>
+
 <button id="Create" onclick="createStudent()" disabled>Create</button>
 <table class="table" id="studentTable" style="margin: auto">
 
     <thead class="thead-dark">
     <tr>
         <th>STT</th>
+        <th>AVATAR</th>
         <th>NAME</th>
         <th>AGE</th>
         <th>ADDRESS</th>
@@ -126,8 +137,103 @@
 
 <script>
 
+    let avatar = document.getElementById('fileButton').value;
+    let checkUploadAvatar = true;
+    if (avatar == '') {
+        document.getElementById('validate-avatar').innerText = 'no avatar yet'
+        document.getElementById('Create').disabled = true
+        checkUploadAvatar = false;
+    }
+    const firebaseConfig = {
+
+        apiKey: "AIzaSyDnSOQFvv4-rrUCdXpfu6hLUKUss_hJQTg",
+        authDomain: "hieu2209-11609.firebaseapp.com",
+        projectId: "hieu2209-11609",
+        storageBucket: "hieu2209-11609.appspot.com",
+        messagingSenderId: "769410408153",
+        appId: "1:769410408153:web:eb35e7cca116deaa7728c8",
+        measurementId: "G-KPZF4LDDPS"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+
+    var fbBucketName = 'images';
+
+    // get elements
+    var uploader = document.getElementById('uploader');
+    var fileButton = document.getElementById('fileButton');
+    console.log('uploader===', uploader.value)
+    console.log('fileButton===', fileButton.value)
+
+    // listen for file selection
+    fileButton.addEventListener('change', async function (e) {
+
+        // what happened
+        console.log('file upload event', e);
+
+        // get file
+        var file = e.target.files[0];
+
+        // create a storage ref
+        var storageRef = firebase.storage().ref(`${fbBucketName}/${file.name}`);
+
+        // upload file
+        var uploadTask = storageRef.put(file);
+
+
+        // update progress bar
+        uploadTask.on(firebase.storage.TaskEvent.STATE_CHANGED, // or 'state_changed'
+            function (snapshot) {
+                // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+                var progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                uploader.value = progress;
+                console.log('Upload is ' + progress + '% done');
+                switch (snapshot.state) {
+                    case firebase.storage.TaskState.PAUSED: // or 'paused'
+                        console.log('Upload is paused');
+                        break;
+                    case firebase.storage.TaskState.RUNNING: // or 'running'
+                        console.log('Upload is running');
+                        break;
+                }
+            }, function (error) {
+
+
+                switch (error.code) {
+                    case 'storage/unauthorized':
+                        // User doesn't have permission to access the object
+                        break;
+
+                    case 'storage/canceled':
+                        // User canceled the upload
+                        break;
+
+                    case 'storage/unknown':
+                        // Unknown error occurred, inspect error.serverResponse
+                        break;
+                }
+            }, function () {
+
+                var downloadURL = uploadTask.snapshot.downloadURL;
+                console.log('downloadURL=====', downloadURL)
+                if (downloadURL) {
+                    document.getElementById('validate-avatar').innerText = ''
+                }
+                console.log('avatar ====', avatar)
+
+                console.log('downloadURL=======', downloadURL)
+                localStorage.setItem('uploadAvatarKey', downloadURL)
+
+                let divLocation = document.getElementById("avatarStudent");
+
+                divLocation.src = downloadURL;
+                divLocation.width = 200;
+                divLocation.height = 200;
+
+            })
+    });
     let name = localStorage.getItem('key-name');
-    let avatar = localStorage.getItem('key-avatar');
+
 
     if (name !== null) {
         document.getElementById('navbarDropdown').innerText = name;
@@ -144,13 +250,14 @@
         document.getElementById('dropdown').style.pointerEvents = 'none';
     }
 
-    window.onload = function() {
+    window.onload = function () {
         var reloading = sessionStorage.getItem("reloading");
         if (reloading) {
             sessionStorage.removeItem("reloading");
             myFunction();
         }
     }
+
     function logOut() {
         sessionStorage.setItem("reloading", "true");
         localStorage.removeItem('key-name');
@@ -168,12 +275,13 @@
     let idUpdate = 0;
     let idDelete = 0;
     let checkValidate = false;
-    // students.push(hieu, hoang, long)
     let newName
     let newAge
     let newAddress
+    let newAvatar
 
     function createStudent() {
+
         console.log('students ===', students.length)
         let newId = 0;
         if (students.length === 0) {
@@ -185,21 +293,23 @@
         newName = document.getElementById('name').value;
         newAge = document.getElementById('age').value;
         newAddress = document.getElementById('address').value;
+        newAvatar = localStorage.getItem('uploadAvatarKey')
 
-        let newStudent = new Students(newId, newName, newAge, newAddress);
+        let newStudent = new Students(newId, newName, newAge, newAddress, newAvatar);
 
 
-        if (checkValidate) {
-            students.push(newStudent);
-            localStorage.removeItem('students');
-            localStorage.setItem('students', JSON.stringify(students))
-            showListStudent();
-        }
+        students.push(newStudent);
+        localStorage.removeItem('students');
+
+        localStorage.setItem('students', JSON.stringify(students))
+        localStorage.removeItem('uploadAvatarKey')
+        showListStudent();
 
 
     }
 
     function validate() {
+        let avatar = localStorage.getItem('uploadAvatarKey');
         newName = document.getElementById('name').value;
         newAge = document.getElementById('age').value;
         newAddress = document.getElementById('address').value;
@@ -229,8 +339,9 @@
             document.getElementById('validateAddress').innerText = '';
             checkValidate = true;
         }
-        if (checkValidate) {
+        if (checkValidate && avatar !== null) {
             document.getElementById('Create').disabled = false;
+
         } else {
             document.getElementById('Create').disabled = true;
         }
@@ -250,6 +361,7 @@
             }
             drawTable += `<tr class= ${colorTr}>
                             <td>${i + 1}</td>
+                           <td><img style="border-radius: 20%; width: 50px; height: 50px" src="${students[i].avatar}"></td>
                             <td>${students[i].name}</td>
                             <td>${students[i].age}</td>
                             <td>${students[i].address}</td>
@@ -266,6 +378,11 @@
                 </button>
             </div>
             <div class="modal-body">
+                    <div>
+                        <label class="col-form-label">Avatar</label>
+                        <a href="upload.html"><img src="https://firebasestorage.googleapis.com/v0/b/hieu2209-11609.appspot.com/o/images%2F6-anh-dai-dien-trang-inkythuatso-03-15-26-36.jpg?alt=media&token=f3d0be82-a442-4021-a7d2-23157c4ae6fe&_gl=1*g4ywlm*_ga*MjA1OTQ5MjM2Ni4xNjk4NzY0NjMz*_ga_CW55HF8NVT*MTY5ODc3MDE0OS4yLjEuMTY5ODc3MDE4Ni4yMy4wLjA." id="avatar-update" style="border-radius: 50%;width: 50px;height: 50px">
+                            </a>
+                    </div>
 
                     <div class="form-group">
                         <label class="col-form-label">Name</label>
@@ -320,6 +437,7 @@
         console.log('id==', id);
         for (let i = 0; i < students.length; i++) {
             if (id === students[i].id) {
+                document.getElementById('avatar-update').src = students[i].avatar;
                 document.getElementById('name-update').value = students[i].name;
                 document.getElementById('age-update').value = students[i].age;
                 document.getElementById('address-update').value = students[i].address;
@@ -392,6 +510,8 @@
             }
             drawTable += `<tr class= ${colorTr}>
                             <td>${i + 1}</td>
+                              <td><a href="upload.html"><img id="iconAvatar" src="https://firebasestorage.googleapis.com/v0/b/hieu2209-11609.appspot.com/o/images%2F6-anh-dai-dien-trang-inkythuatso-03-15-26-36.jpg?alt=media&token=f3d0be82-a442-4021-a7d2-23157c4ae6fe&_gl=1*g4ywlm*_ga*MjA1OTQ5MjM2Ni4xNjk4NzY0NjMz*_ga_CW55HF8NVT*MTY5ODc3MDE0OS4yLjEuMTY5ODc3MDE4Ni4yMy4wLjA." style="border-radius: 50%;width: 50px;height: 50px"></a>
+</td>
                             <td>${results[i].name}</td>
                             <td>${results[i].age}</td>
                             <td>${results[i].address}</td>
